@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register_form</title>
+    <style>
+        form{
+            display:  flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+  <center> <h1>Register form</h1></center> 
+    <form action="/register" method="POST">
+        <label for="name">Name</label>
+        <input type="text" placeholder="Enter Name" name="name" required>
+        <label for="Email">Email</label>
+        <input type="email" placeholder="Enter Mail" name="email" required> 
+        <label for="username">Username</label>
+        <input type="text" placeholder="Username" name="username">
+         <label for="password">Password</label>
+        <input type="text" placeholder="Enter Password" name="password" required>  
+        <button type="submit">Register</button>
+    </form>
+</body>
+</html>
