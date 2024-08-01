@@ -2,6 +2,7 @@ const express=require("express");
 const app=express();
 const mongoose=require("mongoose");
 require("dotenv").config()
+const bcrypt=require("bcryptjs")
 
 // const userSchema=require("./userSchema")
 // middlewares
@@ -53,23 +54,34 @@ console.log(userdb)}
     return res.render("registration")
 })
 app.post('/register',async(req,res)=>{
+
+
+
     let {name,email,username,password}=req.body;
     try {await uservalidation({name,email,username,password});
 }
 catch(error){
 return res.status(400).json(error)
 }
-
+// Decrypted password
+const hashedpassword= await bcrypt.hash(password,+process.env.SALT);
 
     let userObj=new usermodel({
         name:name,
         email:email,
         username:username,
-        password:password,
+        password:hashedpassword,
     })
+    try{
     let userdb=await userObj.save()
   
-    res.redirect("/login")
+    res.status(2001).redirect("/login")}
+    catch(error){
+   res.status(500).json({
+    error:error,
+    message:"internal server error"
+   })
+    }
 })
  
 //login

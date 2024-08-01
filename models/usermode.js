@@ -23,4 +23,4 @@ const UserSchema=new Schema({
 
 })
 
-module.exports=mongoose.model("todo",UserSchema)
+module.exports=mongoose.model("user",UserSchema)
