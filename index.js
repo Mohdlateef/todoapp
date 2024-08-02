@@ -1,134 +1,171 @@
-const express=require("express");
-const app=express();
-const mongoose=require("mongoose");
-require("dotenv").config()
-const bcrypt=require("bcryptjs")
+const express = require("express");
+const mongoose = require("mongoose");
+require("dotenv").config();
+const bcrypt = require("bcryptjs");
+const session=require("express-session");
+const mongodbSession=require("connect-mongodb-session")(session);
 
-// const userSchema=require("./userSchema")
+// constants
+const app = express();
+const mongouri = process.env.mongose_uri;
+const port = process.env.port;
+const store=new mongodbSession({
+  uri:mongouri,
+  collection:"session"
+})
+
 // middlewares
-const usermodel=require("./models/usermode");
+const usermodel = require("./models/usermode");
 const usermode = require("./models/usermode");
-
-
-// fileexports
-const { uservalidation } = require("./utils/authutils");
-
-app.set("view engine" ,"ejs")
-app.use(express.urlencoded({extended:true}));
+const isAuth=require("./middlewares/isAuthmiddleware")
+// file exports
+const { uservalidation, loginvalidation, isEmailValidate } = require("./utils/authutils");
+const ConnectMongoDBSession = require("connect-mongodb-session");
+// global middleware
+app.set("view engine", "ejs");
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-// app.use(express.json);
-
+app.use(
+  session({
+    secret:process.env.SECRET_KEY,
+    store:store,
+    resave:false,
+    saveUninitialized:false,
+  })
+)
 // mongodbconnection
 
-let mongouri=process.env.mongose_uri;
-mongoose.connect((mongouri))
-.then(()=>{
-    console.log("mogodbconected sucessfully")
-}).catch((err)=>{
-    console.log(err)
-})
+mongoose
+  .connect(mongouri)
+  .then(() => {
+    console.log("mogodbconected sucessfully");
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
 // .........Apis......
 // Home
-app.get('/',(req,res)=>{
-    console.log("we are running");
-    // return res.send("we are ready to go")
-    return res.render("homepage");
-})
+app.get("/", (req, res) => {
+  return res.render("homepage");
+});
 
 // registration
-app.get('/register',async (req,res)=>{
+app.get("/register", async (req, res) => {
+  return res.render("registration");
+});
 
-    // const userobj=new usermodel({
-    //     name:'umer',
-    //     email:"lateef1231aba@123",
-    //     username:"abfff",
-    //     password:"22342"
-    // })
-    // const userDb=await userobj.save();
-    try{let userdb=await(usermodel.findOne({email:"lateefah123@gmail.com"}))
-console.log(userdb)}
-    catch(error){
-        console.log(error)
+app.post("/register", async (req, res) => {
+  const { name, email, username, password } = req.body;
+
+  // datavalidation
+  try {
+    await uservalidation({ name, email, username, password });
+  } catch (error) {
+    res.status(400).json({ error: error });
+  }
+
+  try {
+    //  check email present in db
+    let emailExist = await usermode.findOne({ email });
+
+    if (emailExist) {
+      return res.status(400).json("Email already exist");
     }
-    
-    return res.render("registration")
-})
-app.post('/register',async(req,res)=>{
 
+    // check username is present in db
 
-
-    let {name,email,username,password}=req.body;
-    try {await uservalidation({name,email,username,password});
-}
-catch(error){
-return res.status(400).json(error)
-}
-// Decrypted password
-const hashedpassword= await bcrypt.hash(password,+process.env.SALT);
-
-    let userObj=new usermodel({
-        name:name,
-        email:email,
-        username:username,
-        password:hashedpassword,
-    })
-    try{
-    let userdb=await userObj.save()
-  
-    res.status(2001).redirect("/login")}
-    catch(error){
-   res.status(500).json({
-    error:error,
-    message:"internal server error"
-   })
+    let usernameExist = await usermode.findOne({ username: username });
+    console.log(usernameExist, "line 74");
+    if (usernameExist) {
+      return res.status(400).json("Username already exists");
     }
-})
- 
+
+    //haspassword
+    const haspassword = await bcrypt.hash(password, Number(process.env.SALT));
+    // store user info in db
+    const userObj = new usermode({
+      name,
+      email,
+      username,
+     password:haspassword,
+    });
+
+    const userDb = await userObj.save();
+    return res.status(201).render("loginpage");
+  } 
+  catch (error) {
+    return res
+      .status(500)
+      .json({ message: "internal server error", error: error });
+  }
+});
+
 //login
-app.get('/login',(req,res)=>{
-    return res.render("loginpage")
-    
+app.get("/login", (req, res) => {
+  return res.render("loginpage");
+});
+
+app.post("/login", async (req, res) => {
+  let { loginId, password } = req.body;
+
+try{
+  console.log("ues")
+
+// Datavalidation
+await loginvalidation({loginId,password})
+
+// find it's email or username
+let userDb={}
+ if(isEmailValidate({key:loginId})){
+  userDb=await usermode.findOne({email:loginId})
+ }
+ else{
+  userDb =await usermode.findOne({username:loginId});
+ }
+//  console.log("userDb in login" ,userDb)
+if(!userDb){
+  return res.status(400).json("user not Found please register first");
+}
+
+// compare passwords
+let isMatch=await bcrypt.compare(password,userDb.password)
+if(!isMatch){
+  return res.status(200).json("incorrect password")
+}
+
+// sessioininit
+req.session.isAuth=true;
+req.session.user={
+  userid:userDb._id,
+  username:userDb.username,
+  email:userDb.email,
+
+}
+  return res.redirect("dashboard")
+
+}catch(error){
+return res.status(200).json({error:error})
+}
+
 })
-app.post('/login',async(req,res)=>{
-  let {loginId,password}=req.body;
-  console.log(typeof password);
-  if(!loginId||!password)
-  {
-    return res.status(400).json("Missing email/username")
-  }
- if(typeof loginId ==String)
-  {
-    return res.status(400).json("email/username should be in string format");
 
-  }
-  else if(typeof password == String)
-  {
-    return res.status(400).json("Password should be in string format");
+// Dashboard page
 
-  }
-  try{
-    let userDb={};
-    userDb=await(usermode.findOne({email:loginId}))
-   if(userDb)
-   {
-    return res.send("login sucessfull")
-    
-   }
-  }
-  catch(error){
-    return  res.status(500).json({
-        message:"internal server error",error:error
-    })
-  }
- 
+app.get("/dashboard",isAuth,(req,res)=>{
+  return res.render("dashboard");
 })
 
-
-
-const port =process.env.port;
-
-
-app.listen(port,()=>{
-
-    console.log(`server is running on port ${port}`)
+// logout
+app.post("/logout",isAuth,(req,res)=>{
+  req.session.destroy((error)=>{
+    if(error){
+      return res.status(500).json(error)
+    }else{
+      return res.status(200).json("logout sucessfully")
+    }
+  })
 })
+app.listen(port, () => {
+  console.log(`server is running on port ${port}`);
+});
