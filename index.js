@@ -218,55 +218,80 @@ app.get("/read_iteams", isAuth, async (req, res) => {
   }
 });
 
-
 // edit TODOIteams
-app.post("/edit_iteam",isAuth,async (req,res)=>{
+app.post("/edit_iteam", isAuth, async (req, res) => {
+  const _id = req.body._id;
+  const editText = req.body.editText;
 
-  const _id=req.body._id;
-  const editText=req.body.editText;
- 
+  const sesUsername = req.session.user.username;
+  try {
+    const todoDb = await todomodel.findOne({ _id });
+    if (!todoDb) {
+      return req.send({
+        status: 400,
+        message: "user Not found",
+      });
+    }
+    const username = todoDb.username;
+    if (sesUsername !== username) {
+      return res.send({
+        status: 202,
+        message: "unauthrosied request",
+      });
+    }
+    const iteam = await todomodel.findOneAndUpdate(
+      { _id: _id },
+      { todo: editText }
+    );
 
-const sesUsername=req.session.user.username;
-try{
-  const todoDb=await todomodel.findOne({_id})
-  if(!todoDb){
-    return req.send({
-      status:400,
-      message:"user Not found"
-    })
-  }
-  const username=todoDb.username;
-  if(sesUsername!==username)
-  {
     return res.send({
-      status :202,
-      message:"unauthrosied request",
-    })
-  }
-   const iteam=await todomodel.findOneAndUpdate({_id:_id},{todo:editText});
-
-   return res.send({
-    status:201,
-    message:"todo is edited sucessfully"
-   })
-
-  }
-  catch(error){
-    console.log(error,246)
+      status: 201,
+      message: "todo is edited sucessfully",
+    });
+  } catch (error) {
+    console.log(error, 246);
     return res.send({
-      status:500,
-      message:"internal server error",
-      error:error,
-    })
+      status: 500,
+      message: "internal server error",
+      error: error,
+    });
   }
-
-
-})
+});
 
 // delete iteam
-app.get("\delete_iteam" ,iAuth,(req,res)=>{
-  
-})
+app.post("delete_iteam", isAuth, async (req, res) => {
+  const _id = req.body._id;
+  const sesUsername = req.session.user.username;
+  try {
+    const todoDb = await todomodel.findOne({ _id });
+    if (!todoDb) {
+      return res.send({
+        status: 400,
+        message: "No todo find",
+      });
+    }
+    const username = todoDb.username;
+    if (sesUsername !== username) {
+      return res.send({
+        status: 202,
+        message: "unauthorised access",
+      });
+    }
+
+    await todomodel.findOneAndDelete({ _id: id });
+
+    return res.send({
+      status: 201,
+      message: "todo is edited sucessfully",
+    });
+  } catch (error) {
+    return res.send({
+      status: 500,
+      message: "internal server error",
+      error: error,
+    });
+  }
+});
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
