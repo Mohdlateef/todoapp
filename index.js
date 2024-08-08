@@ -150,6 +150,26 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// logout
+app.post("/logout", isAuth,(req,res)=>{
+req.session.destroy((err)=>{
+  if(err)
+  {
+    return res.send({
+      status:200,
+      message:"logout unsecussfull",
+      err:err,
+    })
+  }
+  else{
+    return res.send({
+      status:200,
+      message:"logout secussfull"
+    })
+  }
+})
+
+})
 // Dashboard page
 
 app.get("/dashboard", isAuth, (req, res) => {
