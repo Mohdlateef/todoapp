@@ -11,7 +11,7 @@ const mongouri = process.env.mongose_uri;
 const port = process.env.port;
 const store = new mongodbSession({
   uri: mongouri,
-  collection: "session",
+  collection: "sessions",
 });
 
 // middlewares
@@ -26,10 +26,12 @@ const {
 } = require("./utils/authutils");
 const ConnectMongoDBSession = require("connect-mongodb-session");
 const todomodel = require("./models/todomodel");
+const Sessionmodel = require("./models/sessionmodel");
 // global middleware
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static("public"))
 app.use(
   session({
     secret: process.env.SECRET_KEY,
@@ -177,7 +179,7 @@ app.get("/dashboard", isAuth, (req, res) => {
 });
 
 // logout
-app.post("/logout", isAuth, (req, res) => {
+app.post("/logout", isAuth, async (req, res) => {
   req.session.destroy((error) => {
     if (error) {
       return res.status(500).json(error);
@@ -187,6 +189,23 @@ app.post("/logout", isAuth, (req, res) => {
   });
 });
 
+//logout from all devices
+app.post("/logout-from-all",isAuth, async(req,res)=>{
+  const username=req.session.user.username;
+// console.log(username);
+try {
+  const userDb=await Sessionmodel.deleteMany({
+    "session.user.username":username,
+  });
+  console.log(userDb,199)
+  return res
+  .status(200)
+  .json(`Logout from ${userDb.deletedCount} devices successfull`);
+} catch (error) {
+  return res.status(500).json("logout unsecussfull");
+}
+
+})
 //createapi
 app.post("/create-items", isAuth, async (req, res) => {
   let todoData = req.body.todo;
@@ -279,8 +298,9 @@ app.post("/edit_iteam", isAuth, async (req, res) => {
 });
 
 // delete iteam
-app.post("delete_iteam", isAuth, async (req, res) => {
+app.post("/delete_iteam", isAuth, async (req, res) => {
   const _id = req.body._id;
+  console.log(_id,303)
   const sesUsername = req.session.user.username;
   try {
     const todoDb = await todomodel.findOne({ _id });
@@ -298,7 +318,7 @@ app.post("delete_iteam", isAuth, async (req, res) => {
       });
     }
 
-    await todomodel.findOneAndDelete({ _id: id });
+    await todomodel.findOneAndDelete({ _id});
 
     return res.send({
       status: 201,

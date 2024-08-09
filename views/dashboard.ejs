@@ -5,6 +5,15 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Simple To-Do App</title>
       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+<!-- <link rel="stylesheet" href="./styles.css"> -->
+<style>
+  .newIteamLists{
+
+display: flex;
+align-items: center;
+justify-content: space-around;
+  }
+</style>
     </head>
     <body>
       <div class="container">
@@ -24,15 +33,16 @@
     
 
       <form action='/logout' method="POST">
-        <button> Logout <button>s
+        <button> Logout <button>
       </form>
 
-      <form action='/logout-out-from-all' method="POST">
+      <form action='/logout-from-all' method="POST">
         <button> Logout all devices <button>
       </form>
 
 
       </div>
-    
+      <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
+    <script src="./browser.js"></script>
     </body>
     </html>
