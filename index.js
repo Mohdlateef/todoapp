@@ -27,6 +27,7 @@ const {
 const ConnectMongoDBSession = require("connect-mongodb-session");
 const todomodel = require("./models/todomodel");
 const Sessionmodel = require("./models/sessionmodel");
+const ratelimiting = require("./middlewares/ratelimiting");
 // global middleware
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
@@ -207,7 +208,7 @@ try {
 
 })
 //createapi
-app.post("/create-items", isAuth, async (req, res) => {
+app.post("/create-items", isAuth,ratelimiting, async (req, res) => {
   let todoData = req.body.todo;
   // console.log(todoData,"todo175")
 
@@ -232,22 +233,34 @@ app.post("/create-items", isAuth, async (req, res) => {
 // readtodo
 app.get("/read_iteams", isAuth, async (req, res) => {
   let username = req.session.user.username;
-  console.log("201", username);
+  const SKIP=Number(req.query.skip)||0;
+  const LIMIT=5;
+  // console.log(SKIP,236);
 
   try {
-    let tododb = await todomodel.find({ username: username });
-    // console.log("line205", tododb,)
-    // console.log()
-    if (tododb.length == 0) {
-      return res.send({
-        status: 202,
-        message: "empty lists please enter some lists",
-      });
+    // let tododb = await todomodel.find({ username: username });
+    const tododb=await todomodel.aggregate([
+      {
+        $match:
+        {username:username}
+      },
+      {$skip:SKIP},
+      {$limit:LIMIT},
+    ])
+   console.log(tododb.length,123)
+    
+  
+    if (tododb.length===0) 
+    {
+      console.log(tododb.length)
+    return res.send({
+      message:"wer are failed"
+    })
     }
 
     return res.send({
       tododb: tododb,
-    });
+    })
   } catch (err) {
     return res.send({
       status: 500,
