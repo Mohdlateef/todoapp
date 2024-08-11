@@ -7,10 +7,10 @@ const mongodbSession = require("connect-mongodb-session")(session);
 
 // constants
 const app = express();
-const mongouri = process.env.mongose_uri;
-const port = process.env.port;
+const MOGO_URI = process.env.MOGO_URI;
+const PORT = process.env.PORT;
 const store = new mongodbSession({
-  uri: mongouri,
+  uri: MOGO_URI,
   collection: "sessions",
 });
 
@@ -44,7 +44,7 @@ app.use(
 // mongodbconnection
 
 mongoose
-  .connect(mongouri)
+  .connect(MOGO_URI)
   .then(() => {
     console.log("mogodbconected sucessfully");
   })
@@ -346,6 +346,6 @@ app.post("/delete_iteam", isAuth, async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`server is running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`server is running on port ${PORT}`);
 });
