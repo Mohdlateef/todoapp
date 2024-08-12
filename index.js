@@ -4,7 +4,7 @@ require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const session = require("express-session");
 const mongodbSession = require("connect-mongodb-session")(session);
-
+const jwt=require("jsonwebtoken");
 // constants
 const app = express();
 const MOGO_URI = process.env.MOGO_URI;
@@ -23,6 +23,8 @@ const {
   uservalidation,
   loginvalidation,
   isEmailValidate,
+  genratewebtoken,
+  sendEmailVarification,
 } = require("./utils/authutils");
 const ConnectMongoDBSession = require("connect-mongodb-session");
 const todomodel = require("./models/todomodel");
@@ -100,6 +102,12 @@ app.post("/register", async (req, res) => {
     });
 
     const userDb = await userObj.save();
+    console.log("here i am")
+    const token=genratewebtoken(email);
+   console.log("running fine")
+    sendEmailVarification(email,token);
+   
+    
     return res.status(201).render("loginpage");
   } catch (error) {
     return res
@@ -107,6 +115,19 @@ app.post("/register", async (req, res) => {
       .json({ message: "internal server error", error: error });
   }
 });
+app.get('/verify/:token',async (req,res)=>{
+  // console.log(req.params)
+  const token=req.params.token;
+  const email=jwt.verify(token,process.env.SECRET_KEY);
+  // console.log(email)
+
+try {
+  await usermodel.findOneAndUpdate({email:email},{isEmailVarified:true});
+  return res.status(200).json("Email verified successfully");
+} catch (error) {
+  return res.status(500).json(error);
+}
+})
 
 //login
 app.get("/login", (req, res) => {
@@ -117,7 +138,6 @@ app.post("/login", async (req, res) => {
   let { loginId, password } = req.body;
 
   try {
-    // console.log("ues")
 
     // Datavalidation
     await loginvalidation({ loginId, password });
@@ -133,7 +153,10 @@ app.post("/login", async (req, res) => {
     if (!userDb) {
       return res.status(400).json("user not Found please register first");
     }
-
+    // verify email
+    if (!userDb.isEmailVerified) {
+      return res.status(400).json("Please verify your email, before login.");
+    }
     // compare passwords
     let isMatch = await bcrypt.compare(password, userDb.password);
     if (!isMatch) {
